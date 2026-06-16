@@ -1,12 +1,139 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
 import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
+import { useTheme } from "next-themes"
+import confetti from "canvas-confetti"
+
+// Floating bubble background
+function Bubbles() {
+  return (
+    <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden>
+      {Array.from({ length: 12 }).map((_, i) => (
+        <span
+          key={i}
+          className="bubble"
+          style={{
+            left: `${(i * 8.3 + 3) % 100}%`,
+            animationDelay: `${(i * 1.3) % 7}s`,
+            animationDuration: `${8 + (i * 1.7) % 8}s`,
+            fontSize: `${1.2 + (i * 0.4) % 2}rem`,
+            opacity: 0.15 + (i % 4) * 0.07,
+          }}
+        >
+          💋
+        </span>
+      ))}
+    </div>
+  )
+}
+
+// Animated number with count-up on change
+function AnimatedNumber({ value }: { value: number | null }) {
+  const [display, setDisplay] = useState<number | null>(null)
+  const [animating, setAnimating] = useState(false)
+  const prevRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (value === null) return
+    const prev = prevRef.current
+    prevRef.current = value
+
+    if (prev === null) {
+      setDisplay(value)
+      return
+    }
+
+    // Animate count up/down
+    const diff = value - prev
+    if (diff === 0) return
+
+    setAnimating(true)
+    const steps = Math.min(Math.abs(diff), 20)
+    const stepSize = diff / steps
+    let current = prev
+    let step = 0
+
+    const tick = () => {
+      step++
+      current += stepSize
+      setDisplay(Math.round(current))
+      if (step < steps) {
+        setTimeout(tick, 30)
+      } else {
+        setDisplay(value)
+        setTimeout(() => setAnimating(false), 200)
+      }
+    }
+    setTimeout(tick, 30)
+  }, [value])
+
+  if (value === null) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="animate-pulse text-9xl font-bold leading-none text-foreground/20">—</span>
+      </div>
+    )
+  }
+
+  return (
+    <span
+      className={`text-9xl font-bold tabular-nums leading-none transition-transform duration-150 ${
+        animating ? "scale-110" : "scale-100"
+      }`}
+      style={{ display: "inline-block" }}
+    >
+      {display ?? value}
+    </span>
+  )
+}
+
+const addTexts = [
+  "Smooch logged! 💅",
+  "Kiss received. Filing paperwork. 📋",
+  "Another one for the archives! 🗂️",
+  "Documented. Official. Certified. ✅",
+  "That one counted! 💋",
+  "Noted with love. 🫶",
+  "The record grows. 📈",
+  "Kiss captured! Don't lose it. 💾",
+]
+
+const resetTexts = [
+  "Wiped the slate. Fresh start! 🧹",
+  "Gone. Like it never happened. 👻",
+  "The record has been expunged. 📜",
+  "Zero is a perfectly valid number. 0️⃣",
+  "Reset! Let the chaos begin again. 🔄",
+  "The counter has been reborn. 🌱",
+]
+
+const idlePhrases = [
+  "Kisses, officially counted.",
+  "Every smooch, on the record.",
+  "The most important metric.",
+  "A very serious tracking system.",
+  "Because love deserves data.",
+]
+
+function pickRandom<T>(arr: T[]) {
+  return arr[Math.floor(Math.random() * arr.length)]
+}
 
 export default function KissCounter() {
   const [count, setCount] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
+  const [resetting, setResetting] = useState(false)
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { resolvedTheme, setTheme } = useTheme()
+
+  const showToast = useCallback((msg: string) => {
+    setToast(msg)
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    toastTimer.current = setTimeout(() => setToast(null), 2500)
+  }, [])
 
   useEffect(() => {
     supabase
@@ -37,54 +164,136 @@ export default function KissCounter() {
   const addKiss = async () => {
     if (loading) return
     setLoading(true)
+
+    // Fire confetti
+    confetti({
+      particleCount: 60,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ["#ff4d6d", "#ff8fa3", "#ffb3c1", "#ff006e", "#c9184a"],
+      shapes: ["circle"],
+      scalar: 1.2,
+    })
+
     await supabase.rpc("increment_kisses")
+    showToast(pickRandom(addTexts))
     setLoading(false)
   }
 
   const reset = async () => {
     if (loading) return
     setLoading(true)
+    setResetting(true)
+
     await supabase
       .from("kiss_counter")
       .update({ count: 0, updated_at: new Date().toISOString() })
       .eq("id", 1)
+
+    showToast(pickRandom(resetTexts))
     setLoading(false)
+    setTimeout(() => setResetting(false), 600)
   }
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-8 p-6">
-      <div className="flex flex-col items-center gap-2">
-        <span className="text-6xl">💋</span>
-        <h1 className="text-2xl font-semibold tracking-tight">Kiss Counter</h1>
-      </div>
+    <>
+      <style>{`
+        @keyframes floatUp {
+          0%   { transform: translateY(100vh) scale(0.8); opacity: 0; }
+          10%  { opacity: 1; }
+          90%  { opacity: 0.8; }
+          100% { transform: translateY(-10vh) scale(1.1); opacity: 0; }
+        }
+        .bubble {
+          position: absolute;
+          bottom: -2rem;
+          animation: floatUp linear infinite;
+          will-change: transform, opacity;
+          user-select: none;
+        }
+        @keyframes toastIn {
+          from { opacity: 0; transform: translateY(8px) scale(0.95); }
+          to   { opacity: 1; transform: translateY(0)   scale(1); }
+        }
+        .toast-enter {
+          animation: toastIn 0.2s ease-out forwards;
+        }
+        @keyframes shakeOut {
+          0%   { transform: scale(1) rotate(0deg); }
+          20%  { transform: scale(0.9) rotate(-3deg); }
+          40%  { transform: scale(1.05) rotate(3deg); }
+          60%  { transform: scale(0.95) rotate(-2deg); }
+          80%  { transform: scale(1.02) rotate(1deg); }
+          100% { transform: scale(1) rotate(0deg); }
+        }
+        .shake { animation: shakeOut 0.5s ease-out; }
+      `}</style>
 
-      <div className="flex flex-col items-center gap-1">
-        <span className="text-9xl font-bold tabular-nums leading-none">
-          {count === null ? "—" : count}
-        </span>
-        <span className="text-sm text-muted-foreground">kisses</span>
-      </div>
+      <Bubbles />
 
-      <div className="flex flex-col items-center gap-3 w-full max-w-xs">
-        <Button
-          size="lg"
-          className="w-full text-lg h-14"
-          onClick={addKiss}
-          disabled={loading || count === null}
+      {/* Theme toggle */}
+      <button
+        onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+        className="fixed top-4 right-4 z-10 rounded-full p-2 text-xl transition-transform hover:scale-110 active:scale-95"
+        aria-label="Toggle theme"
+      >
+        {resolvedTheme === "dark" ? "☀️" : "🌙"}
+      </button>
+
+      <div className="flex min-h-svh flex-col items-center justify-center gap-6 p-6 relative z-10">
+
+        {/* Header */}
+        <div className="flex flex-col items-center gap-1 text-center">
+          <span className="text-5xl animate-bounce">💋</span>
+          <h1 className="text-3xl font-bold tracking-tight">Kiss Counter</h1>
+          <p className="text-sm text-muted-foreground">{pickRandom(idlePhrases)}</p>
+        </div>
+
+        {/* Count display */}
+        <div
+          className={`flex flex-col items-center gap-1 ${resetting ? "shake" : ""}`}
         >
-          💋 Add a Kiss
-        </Button>
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={reset}
-          disabled={loading || count === null}
-        >
-          Reset
-        </Button>
+          <AnimatedNumber value={count} />
+          <span className="text-sm text-muted-foreground font-medium">
+            {count === null ? "connecting…" : count === 1 ? "kiss" : "kisses"}
+          </span>
+        </div>
+
+        {/* Buttons */}
+        <div className="flex flex-col items-center gap-3 w-full max-w-xs">
+          <Button
+            size="lg"
+            className="w-full text-lg h-14 transition-all active:scale-95 hover:scale-[1.02] shadow-md"
+            onClick={addKiss}
+            disabled={loading || count === null}
+          >
+            💋 Add a Kiss
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full transition-all active:scale-95 hover:scale-[1.01]"
+            onClick={reset}
+            disabled={loading || count === null}
+          >
+            Reset
+          </Button>
+        </div>
+
+        {/* Sync note */}
+        <p className="text-xs text-muted-foreground/60">
+          ✨ Syncs across all your devices in real-time
+        </p>
       </div>
 
-      <p className="text-xs text-muted-foreground">Syncs across all devices in real-time</p>
-    </div>
+      {/* Toast */}
+      {toast && (
+        <div
+          key={toast + Date.now()}
+          className="toast-enter fixed bottom-8 left-1/2 -translate-x-1/2 z-50 rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-medium shadow-lg whitespace-nowrap"
+        >
+          {toast}
+        </div>
+      )}
+    </>
   )
 }
