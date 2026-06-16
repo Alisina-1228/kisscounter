@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, useCallback } from "react"
 import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
-import { useTheme } from "next-themes"
 import confetti from "canvas-confetti"
 
 // Floating bubble background — negative delays so they're already mid-flight on load
@@ -130,13 +129,7 @@ export default function KissCounter() {
   const [toast, setToast] = useState<{ msg: string; key: number } | null>(null)
   const [resetting, setResetting] = useState(false)
   const toastKeyRef = useRef(0)
-  const [mounted, setMounted] = useState(false)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const { resolvedTheme, setTheme } = useTheme()
-
-  useEffect(() => { setMounted(true) }, [])
-
-  const isDark = mounted && resolvedTheme === "dark"
 
   const showToast = useCallback((msg: string) => {
     toastKeyRef.current += 1
@@ -241,16 +234,14 @@ export default function KissCounter() {
 
       <Bubbles />
 
-      {/* Theme toggle */}
-      <button
-        onClick={() => setTheme(isDark ? "light" : "dark")}
-        className="fixed top-4 right-4 z-10 rounded-full p-2 text-xl transition-transform hover:scale-110 active:scale-95"
-        aria-label="Toggle theme"
-      >
-        {mounted ? (isDark ? "☀️" : "🌙") : null}
-      </button>
-
       <div className="flex min-h-svh flex-col items-center justify-center gap-6 p-6 relative z-10">
+
+        {/* Attribution pill */}
+        <div className="absolute top-5 left-1/2 -translate-x-1/2">
+          <span className="rounded-full border border-border bg-background/60 backdrop-blur-sm px-4 py-1.5 text-xs text-muted-foreground font-medium tracking-wide whitespace-nowrap">
+            Built by Alisina for Mahtab 💋
+          </span>
+        </div>
 
         {/* Header */}
         <div className="flex flex-col items-center gap-1 text-center">
