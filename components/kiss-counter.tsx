@@ -6,25 +6,28 @@ import { Button } from "@/components/ui/button"
 import { useTheme } from "next-themes"
 import confetti from "canvas-confetti"
 
-// Floating bubble background
+// Floating bubble background — negative delays so they're already mid-flight on load
 function Bubbles() {
   return (
     <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden>
-      {Array.from({ length: 12 }).map((_, i) => (
-        <span
-          key={i}
-          className="bubble"
-          style={{
-            left: `${(i * 8.3 + 3) % 100}%`,
-            animationDelay: `${(i * 1.3) % 7}s`,
-            animationDuration: `${8 + (i * 1.7) % 8}s`,
-            fontSize: `${1.2 + (i * 0.4) % 2}rem`,
-            opacity: 0.15 + (i % 4) * 0.07,
-          }}
-        >
-          💋
-        </span>
-      ))}
+      {Array.from({ length: 12 }).map((_, i) => {
+        const duration = 8 + (i * 1.7) % 8
+        return (
+          <span
+            key={i}
+            className="bubble"
+            style={{
+              left: `${(i * 8.3 + 3) % 100}%`,
+              animationDelay: `-${(i * 1.3) % duration}s`,
+              animationDuration: `${duration}s`,
+              fontSize: `${1.2 + (i * 0.4) % 2}rem`,
+              opacity: 0.15 + (i % 4) * 0.07,
+            }}
+          >
+            💋
+          </span>
+        )
+      })}
     </div>
   )
 }
@@ -132,6 +135,8 @@ export default function KissCounter() {
 
   useEffect(() => { setMounted(true) }, [])
 
+  const isDark = mounted && resolvedTheme === "dark"
+
   const showToast = useCallback((msg: string) => {
     setToast(msg)
     if (toastTimer.current) clearTimeout(toastTimer.current)
@@ -236,11 +241,11 @@ export default function KissCounter() {
 
       {/* Theme toggle */}
       <button
-        onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+        onClick={() => setTheme(isDark ? "light" : "dark")}
         className="fixed top-4 right-4 z-10 rounded-full p-2 text-xl transition-transform hover:scale-110 active:scale-95"
         aria-label="Toggle theme"
       >
-        {mounted ? (resolvedTheme === "dark" ? "☀️" : "🌙") : "🌙"}
+        {mounted ? (isDark ? "☀️" : "🌙") : null}
       </button>
 
       <div className="flex min-h-svh flex-col items-center justify-center gap-6 p-6 relative z-10">
