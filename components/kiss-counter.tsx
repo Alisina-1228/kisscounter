@@ -125,6 +125,7 @@ function pickRandom<T>(arr: T[]) {
 
 export default function KissCounter() {
   const [count, setCount] = useState<number | null>(null)
+  const [totalKisses, setTotalKisses] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<{ msg: string; key: number } | null>(null)
   const [resetting, setResetting] = useState(false)
@@ -141,11 +142,14 @@ export default function KissCounter() {
   useEffect(() => {
     supabase
       .from("kiss_counter")
-      .select("count")
+      .select("count, total_kisses")
       .eq("id", 1)
       .single()
       .then(({ data }) => {
-        if (data) setCount(data.count)
+        if (data) {
+          setCount(data.count)
+          setTotalKisses(data.total_kisses ?? 0)
+        }
       })
 
     const channel = supabase
@@ -154,7 +158,9 @@ export default function KissCounter() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "kiss_counter" },
         (payload) => {
-          setCount((payload.new as { count: number }).count)
+          const row = payload.new as { count: number; total_kisses: number }
+          setCount(row.count)
+          setTotalKisses(row.total_kisses ?? 0)
         }
       )
       .subscribe()
@@ -184,13 +190,17 @@ export default function KissCounter() {
   }
 
   const reset = async () => {
-    if (loading) return
+    if (loading || count === null) return
     setLoading(true)
     setResetting(true)
 
     await supabase
       .from("kiss_counter")
-      .update({ count: 0, updated_at: new Date().toISOString() })
+      .update({
+        count: 0,
+        total_kisses: (totalKisses ?? 0) + count,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", 1)
 
     showToast(pickRandom(resetTexts))
@@ -250,14 +260,27 @@ export default function KissCounter() {
           <p className="text-sm text-muted-foreground">{pickRandom(idlePhrases)}</p>
         </div>
 
-        {/* Count display */}
-        <div
-          className={`flex flex-col items-center gap-1 ${resetting ? "shake" : ""}`}
-        >
-          <AnimatedNumber value={count} />
-          <span className="text-sm text-muted-foreground font-medium">
-            {count === null ? "connecting…" : count === 1 ? "kiss" : "kisses"}
-          </span>
+        {/* Count display — two sections */}
+        <div className="flex items-start justify-center gap-10">
+          {/* Owed Kisses */}
+          <div className={`flex flex-col items-center gap-1 ${resetting ? "shake" : ""}`}>
+            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Owed</span>
+            <AnimatedNumber value={count} />
+            <span className="text-sm text-muted-foreground font-medium">
+              {count === null ? "connecting…" : count === 1 ? "kiss" : "kisses"}
+            </span>
+          </div>
+
+          <div className="w-px self-stretch bg-border mt-6" />
+
+          {/* Total Kisses */}
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Total</span>
+            <AnimatedNumber value={totalKisses} />
+            <span className="text-sm text-muted-foreground font-medium">
+              {totalKisses === null ? "connecting…" : totalKisses === 1 ? "kiss" : "kisses"}
+            </span>
+          </div>
         </div>
 
         {/* Buttons */}
