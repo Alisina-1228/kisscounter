@@ -126,8 +126,11 @@ export default function KissCounter() {
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [resetting, setResetting] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { resolvedTheme, setTheme } = useTheme()
+
+  useEffect(() => { setMounted(true) }, [])
 
   const showToast = useCallback((msg: string) => {
     setToast(msg)
@@ -237,14 +240,14 @@ export default function KissCounter() {
         className="fixed top-4 right-4 z-10 rounded-full p-2 text-xl transition-transform hover:scale-110 active:scale-95"
         aria-label="Toggle theme"
       >
-        {resolvedTheme === "dark" ? "☀️" : "🌙"}
+        {mounted ? (resolvedTheme === "dark" ? "☀️" : "🌙") : "🌙"}
       </button>
 
       <div className="flex min-h-svh flex-col items-center justify-center gap-6 p-6 relative z-10">
 
         {/* Header */}
         <div className="flex flex-col items-center gap-1 text-center">
-          <span className="text-5xl animate-bounce">💋</span>
+          <span className="text-5xl">💋</span>
           <h1 className="text-3xl font-bold tracking-tight">Kiss Counter</h1>
           <p className="text-sm text-muted-foreground">{pickRandom(idlePhrases)}</p>
         </div>
