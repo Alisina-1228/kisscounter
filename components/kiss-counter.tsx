@@ -127,8 +127,9 @@ function pickRandom<T>(arr: T[]) {
 export default function KissCounter() {
   const [count, setCount] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
+  const [toast, setToast] = useState<{ msg: string; key: number } | null>(null)
   const [resetting, setResetting] = useState(false)
+  const toastKeyRef = useRef(0)
   const [mounted, setMounted] = useState(false)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { resolvedTheme, setTheme } = useTheme()
@@ -138,7 +139,8 @@ export default function KissCounter() {
   const isDark = mounted && resolvedTheme === "dark"
 
   const showToast = useCallback((msg: string) => {
-    setToast(msg)
+    toastKeyRef.current += 1
+    setToast({ msg, key: toastKeyRef.current })
     if (toastTimer.current) clearTimeout(toastTimer.current)
     toastTimer.current = setTimeout(() => setToast(null), 2500)
   }, [])
@@ -296,10 +298,10 @@ export default function KissCounter() {
       {/* Toast */}
       {toast && (
         <div
-          key={toast + Date.now()}
+          key={toast.key}
           className="toast-enter fixed bottom-8 left-1/2 -translate-x-1/2 z-50 rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-medium shadow-lg whitespace-nowrap"
         >
-          {toast}
+          {toast.msg}
         </div>
       )}
     </>
