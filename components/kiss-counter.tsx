@@ -74,14 +74,14 @@ function AnimatedNumber({ value }: { value: number | null }) {
   if (value === null) {
     return (
       <div className="flex items-center gap-2">
-        <span className="animate-pulse text-9xl font-bold leading-none text-foreground/20">—</span>
+        <span className="animate-pulse text-[clamp(2.5rem,15vw,7rem)] font-bold leading-none text-foreground/20">—</span>
       </div>
     )
   }
 
   return (
     <span
-      className={`text-9xl font-bold tabular-nums leading-none transition-transform duration-150 ${
+      className={`text-[clamp(2.5rem,15vw,7rem)] font-bold tabular-nums leading-none transition-transform duration-150 ${
         animating ? "scale-110" : "scale-100"
       }`}
       style={{ display: "inline-block" }}
@@ -261,7 +261,7 @@ export default function KissCounter() {
         </div>
 
         {/* Count display — two sections */}
-        <div className="flex items-start justify-center gap-10">
+        <div className="flex items-start justify-center gap-4 sm:gap-10 w-full max-w-xs sm:max-w-none">
           {/* Owed Kisses */}
           <div className={`flex flex-col items-center gap-1 ${resetting ? "shake" : ""}`}>
             <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Owed</span>
