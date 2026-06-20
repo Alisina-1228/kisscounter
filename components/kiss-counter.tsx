@@ -111,6 +111,14 @@ const resetTexts = [
   "The counter has been reborn. 🌱",
 ]
 
+const removeTexts = [
+  "One taken back. Fair enough. 🫤",
+  "Minus one. Noted. 📉",
+  "Kiss recalled. 🫠",
+  "The ledger has been adjusted. 🧾",
+  "One less. No judgment. 🤐",
+]
+
 const idlePhrases = [
   "Kisses, officially counted.",
   "Every smooch, on the record.",
@@ -186,6 +194,19 @@ export default function KissCounter() {
 
     await supabase.rpc("increment_kisses")
     showToast(pickRandom(addTexts))
+    setLoading(false)
+  }
+
+  const removeKiss = async () => {
+    if (loading || !count) return
+    setLoading(true)
+
+    await supabase
+      .from("kiss_counter")
+      .update({ count: count - 1, updated_at: new Date().toISOString() })
+      .eq("id", 1)
+
+    showToast(pickRandom(removeTexts))
     setLoading(false)
   }
 
@@ -293,14 +314,24 @@ export default function KissCounter() {
           >
             💋 Add a Kiss
           </Button>
-          <Button
-            variant="outline"
-            className="w-full transition-all active:scale-95 hover:scale-[1.01]"
-            onClick={reset}
-            disabled={loading || count === null}
-          >
-            Reset
-          </Button>
+          <div className="flex w-full gap-2">
+            <Button
+              variant="outline"
+              className="flex-1 transition-all active:scale-95 hover:scale-[1.01]"
+              onClick={removeKiss}
+              disabled={loading || !count}
+            >
+              − 1 Kiss
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 transition-all active:scale-95 hover:scale-[1.01]"
+              onClick={reset}
+              disabled={loading || !count}
+            >
+              Reset
+            </Button>
+          </div>
         </div>
 
         {/* Sync note */}
