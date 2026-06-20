@@ -203,7 +203,11 @@ export default function KissCounter() {
 
     await supabase
       .from("kiss_counter")
-      .update({ count: count - 1, updated_at: new Date().toISOString() })
+      .update({
+        count: count - 1,
+        total_kisses: (totalKisses ?? 0) + 1,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", 1)
 
     showToast(pickRandom(removeTexts))
